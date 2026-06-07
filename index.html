@@ -88,19 +88,26 @@
     border: 1px solid rgba(255,255,255,0.08); padding: 14px; min-height: 160px;
   }
   .team-col.team-a { border-color: rgba(233,69,96,0.3); }
-  .team-col.team-b { border-color: rgba(76,201,240,0.3); }
+  /* تغییر رنگ کادر تیم ب به آبی تیره */
+  .team-col.team-b { border-color: rgba(13, 110, 253, 0.3); }
+  
   .team-header {
     display: flex; align-items: center; gap: 8px; margin-bottom: 14px; padding-bottom: 10px; border-bottom: 2px solid rgba(255,255,255,0.08);
   }
   .team-a .team-header { border-bottom-color: rgba(233,69,96,0.4); }
-  .team-b .team-header { border-bottom-color: rgba(76,201,240,0.4); }
+  /* خط زیر هدر تیم ب */
+  .team-b .team-header { border-bottom-color: rgba(13, 110, 253, 0.4); }
+  
   .team-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
   .team-a .team-dot { background: #e94560; box-shadow: 0 0 8px #e94560; }
-  .team-b .team-dot { background: #4cc9f0; box-shadow: 0 0 8px #4cc9f0; }
+  /* نقطه کنار اسم تیم ب */
+  .team-b .team-dot { background: #0d6efd; box-shadow: 0 0 8px #0d6efd; }
+  
   .team-name { font-weight: 700; font-size: 15px; }
   .team-count { margin-right: auto; border-radius: 20px; padding: 2px 8px; font-size: 12px; }
   .team-a .team-count { background: rgba(233,69,96,0.15); color: #e94560; }
-  .team-b .team-count { background: rgba(76,201,240,0.15); color: #4cc9f0; }
+  /* عدد تعداد نفرات تیم ب */
+  .team-b .team-count { background: rgba(13, 110, 253, 0.15); color: #4dabf7; }
 
   .player-card {
     background: rgba(255,255,255,0.05); border-radius: 10px; padding: 9px 11px; display: flex; align-items: center; gap: 9px; border: 1px solid rgba(255,255,255,0.07); margin-bottom: 7px; position: relative;
@@ -186,7 +193,7 @@
   }
   .tactic-player:active { cursor: grabbing; }
   .shirt-icon {
-    width: 38px; height: 38px; transition: color 0.3s ease; filter: drop-shadow(0 3px 4px rgba(0,0,0,0.5)); pointer-events: none;
+    width: 42px; height: 42px; transition: color 0.3s ease; filter: drop-shadow(0 4px 5px rgba(0,0,0,0.6)); pointer-events: none;
   }
   .t-name {
     background: rgba(0,0,0,0.8); color: white; font-size: 10px; padding: 2px 5px; border-radius: 4px;
@@ -301,7 +308,7 @@
     <div class="stat-card"><div class="stat-label">کل بازیکنان</div><div class="stat-val" id="s-total">۰</div></div>
     <div class="stat-card"><div class="stat-label">حاضرین امروز</div><div class="stat-val" style="color:#4ade80" id="s-present">۰</div></div>
     <div class="stat-card"><div class="stat-label">تیم الف</div><div class="stat-val" style="color:#e94560" id="s-a">۰ نفر</div></div>
-    <div class="stat-card"><div class="stat-label">تیم ب</div><div class="stat-val" style="color:#4cc9f0" id="s-b">۰ نفر</div></div>
+    <div class="stat-card"><div class="stat-label">تیم ب</div><div class="stat-val" style="color:#0d6efd" id="s-b">۰ نفر</div></div>
     <div class="stat-card"><div class="stat-label">تعادل تیم‌ها</div><div class="stat-val" style="font-size:15px" id="s-balance">—</div></div>
   </div>
 </div>
@@ -315,7 +322,8 @@ const API_KEY = '$2a$10$.bXtjVvetitLx4DUvxkqWu3zvWmYEvL13hkjtqR5Qwg1eqLyaIt7.';
 
 // ── State ──────────────────────────────────────────────
 let state = { players: [], teamA: [], teamB: [], attendance: {} };
-const TEAM_COLORS = { A: '#e94560', B: '#4cc9f0', null: '#888' };
+// تغییر رنگ تیم ب به آبی لاجوردی و اسپرت
+const TEAM_COLORS = { A: '#e94560', B: '#0d6efd', null: '#888' };
 let activeDragId = null;
 
 function fa(n) { return String(n).replace(/\d/g, d => '۰۱۲۳۴۵۶۷۸۹'[d]); }
@@ -354,7 +362,6 @@ async function load() {
   } catch(e) { console.error('Error loading data', e); }
 }
 
-// خواندن دوره‌ای از سرور هر ۵ ثانیه
 setInterval(load, 5000);
 
 // ── Helpers ───────────────────────────────────────────
@@ -517,9 +524,12 @@ function renderCourt() {
         const el = document.createElement('div');
         el.className = 'tactic-player';
         el.id = 'tplayer_' + p.id;
+        
+        // جایگزینی آیکون جدید و زیباتر (تی‌شرت یقه‌هفت با حاشیه درخشان)
         el.innerHTML = `
-            <svg class="shirt-icon" viewBox="0 0 24 24" fill="${color}">
-                <path d="M20 6L16 3H8L4 6L2 11L6 13V21H18V13L22 11L20 6Z"/>
+            <svg class="shirt-icon" viewBox="0 0 24 24" fill="${color}" stroke="rgba(255,255,255,0.4)" stroke-width="0.7">
+                <path d="M15.36 2.18l4.47 2.45c.9.49 1.26 1.58.82 2.5l-1.46 3.08c-.39.82-1.33 1.21-2.16.89l-1.52-.58V20c0 1.1-.9 2-2 2h-3c-1.1 0-2-.9-2-2v-9.48l-1.52.58c-.83.32-1.78-.07-2.16-.89L3.35 7.13c-.44-.92-.07-2.01.82-2.5l4.47-2.45C9.61 1.65 10.74 1.5 11.75 2c.25.12.5.24.75.36.25-.12.51-.24.75-.36.97-.49 2.11-.35 3.11.18z"/>
+                <path d="M9.5 2.5L12 6l2.5-3.5" fill="none" stroke="rgba(255,255,255,0.6)" stroke-width="1" stroke-linejoin="round"/>
             </svg>
             <div class="t-name">${p.name}</div>
         `;
