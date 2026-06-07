@@ -3,10 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>تخته تاکتیک والیبال</title>
+    <title>تخته تاکتیک والیبال (سیستم Polling)</title>
     
     <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;700&display=swap" rel="stylesheet">
-    
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <style>
@@ -27,7 +26,6 @@
             overflow: hidden;
         }
 
-        /* --- پنل لیست بازیکنان --- */
         .sidebar {
             width: 300px;
             background-color: #16213e;
@@ -73,7 +71,6 @@
         .bench-area::-webkit-scrollbar-thumb { background: #e94560; border-radius: 4px; }
         .bench-area::-webkit-scrollbar-track { background: #0f3460; border-radius: 4px; }
 
-        /* --- محوطه زمین بازی --- */
         .court-wrapper {
             flex: 1;
             display: flex;
@@ -117,7 +114,6 @@
             pointer-events: none;
         }
 
-        /* --- طراحی مهره بازیکنان --- */
         .player {
             display: flex;
             flex-direction: column;
@@ -222,68 +218,95 @@
     </div>
 
     <script>
-        // === اطلاعات اختصاصی دیتابیس میلاد ===
-        const SUPABASE_URL = 'https://upkelnsmharklolaqrco.supabase.co/rest/v1/volleyball_team';
+        // اطلاعات دیتابیس
+        const SUPABASE_URL = 'https://upkelnsmharklolaqrco.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVwa2VsbnNtaGFya2xvbGFxcmNvIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MDgyNDkxMCwiZXhwIjoyMDk2NDAwOTEwfQ.3aKT49UYZXoSRL7wrxDoCtsw237BrI67SsXlGBMNOgY';
         
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        let localPlayers = [];
+        
+        // متغیر برای تشخیص اینکه کاربر در حال درگ کردن مهره هست یا نه
+        let activeDragId = null;
 
         window.onload = function() {
             fetchPlayers();
-            listenToChanges();
+            // راه‌اندازی سیستم Polling (چک کردن دیتابیس هر 2 ثانیه)
+            setInterval(fetchPlayers, 2000);
         };
 
         async function fetchPlayers() {
             const { data, error } = await _supabase.from('volleyball_team').select('*');
             if (!error && data) {
-                localPlayers = data;
-                renderPlayers();
-            } else if (error) {
-                console.error("خطا در دریافت اطلاعات:", error);
+                updateDOM(data);
             }
         }
 
-        function renderPlayers() {
-            document.querySelectorAll('.player').forEach(el => el.remove());
+        // آپدیت هوشمند صفحه برای جلوگیری از پرش مهره‌ها (Flicker)
+        function updateDOM(serverPlayers) {
+            const serverIds = serverPlayers.map(p => 'player_' + p.id);
+            
+            // ۱. حذف بازیکنانی که روی سرور نیستند
+            document.querySelectorAll('.player').forEach(el => {
+                if (!serverIds.includes(el.id)) el.remove();
+            });
 
-            localPlayers.forEach(player => {
-                const playerDiv = document.createElement('div');
-                playerDiv.className = 'player';
-                playerDiv.id = 'player_' + player.id;
-                playerDiv.dataset.dbId = player.id;
+            // ۲. اضافه کردن یا جابجایی بازیکنان
+            serverPlayers.forEach(player => {
+                const elId = 'player_' + player.id;
+                let el = document.getElementById(elId);
 
-                playerDiv.ondblclick = async function(ev) {
-                    ev.stopPropagation();
-                    if(confirm('حذف "' + player.name + '" از سیستم؟')) {
-                        await _supabase.from('volleyball_team').delete().eq('id', player.id);
-                        fetchPlayers(); // آپدیت صفحه خودمون
-                    }
-                };
-
-                const shirtDiv = document.createElement('div');
-                shirtDiv.className = 'player-shirt color-neutral';
-                shirtDiv.innerHTML = `
-                    <svg viewBox="0 0 24 24" fill="currentColor" width="100%" height="100%">
-                        <path d="M20 6L16 3H8L4 6L2 11L6 13V21H18V13L22 11L20 6Z"/>
-                    </svg>
-                `;
-
-                const nameSpan = document.createElement('div');
-                nameSpan.className = 'player-name';
-                nameSpan.innerText = player.name;
-
-                playerDiv.appendChild(shirtDiv);
-                playerDiv.appendChild(nameSpan);
+                // اگر مهره الان تو دست کاربره، جابجاش نکن که از دستش نپره
+                if (activeDragId === elId) return;
 
                 let targetZone = document.getElementById(player.position);
                 if (!targetZone) targetZone = document.getElementById('bench');
-                
-                targetZone.appendChild(playerDiv);
-                setupDragAndDrop(playerDiv, player.name, player.id);
+
+                if (!el) {
+                    // بازیکن جدید
+                    el = createPlayerHTML(player);
+                    targetZone.appendChild(el);
+                    setupDragAndDrop(el, player.name, player.id);
+                } else {
+                    // اگه جاش عوض شده بود
+                    if (el.parentElement.id !== targetZone.id) {
+                        targetZone.appendChild(el);
+                    }
+                }
             });
 
             updateGameState();
+        }
+
+        function createPlayerHTML(player) {
+            const playerDiv = document.createElement('div');
+            playerDiv.className = 'player';
+            playerDiv.id = 'player_' + player.id;
+            playerDiv.dataset.dbId = player.id;
+
+            playerDiv.ondblclick = async function(ev) {
+                ev.stopPropagation();
+                if(confirm('حذف "' + player.name + '" از سیستم؟')) {
+                    playerDiv.style.opacity = '0.5';
+                    await _supabase.from('volleyball_team').delete().eq('id', player.id);
+                    fetchPlayers();
+                }
+            };
+
+            const shirtDiv = document.createElement('div');
+            shirtDiv.className = 'player-shirt color-neutral';
+            shirtDiv.innerHTML = `
+                <svg viewBox="0 0 24 24" fill="currentColor" width="100%" height="100%">
+                    <path d="M20 6L16 3H8L4 6L2 11L6 13V21H18V13L22 11L20 6Z"/>
+                </svg>
+            `;
+
+            const nameSpan = document.createElement('div');
+            nameSpan.className = 'player-name';
+            nameSpan.innerText = player.name;
+
+            playerDiv.appendChild(shirtDiv);
+            playerDiv.appendChild(nameSpan);
+
+            return playerDiv;
         }
 
         function updateGameState() {
@@ -305,32 +328,19 @@
 
         async function addPlayer(e) {
             if(e) e.preventDefault(); 
-
             const input = document.getElementById('playerNameInput');
             const name = input.value.trim();
             if (name === '') return;
 
-            const { error } = await _supabase.from('volleyball_team').insert([{ name: name, position: 'bench' }]);
-            
-            if (error) {
-                console.error("خطا در ثبت بازیکن:", error);
-                alert("ارتباط با دیتابیس برقرار نشد. لطفاً اینترنت خود را بررسی کنید.");
-            } else {
-                fetchPlayers(); // فراخوانی مجدد برای نمایش در صفحه خودمون
-            }
+            input.value = 'در حال ثبت...';
+            input.disabled = true;
+
+            await _supabase.from('volleyball_team').insert([{ name: name, position: 'bench' }]);
+            fetchPlayers();
             
             input.value = '';
+            input.disabled = false;
             input.focus();
-        }
-
-        // سینک لحظه‌ای
-        function listenToChanges() {
-            _supabase
-                .channel('realtime-volleyball')
-                .on('postgres_changes', { event: '*', schema: 'public', table: 'volleyball_team' }, () => {
-                    fetchPlayers();
-                })
-                .subscribe();
         }
 
         // کامپیوتر
@@ -343,16 +353,22 @@
                 if(el) {
                     zone.appendChild(el);
                     updateGameState();
+                    activeDragId = null;
                     await _supabase.from('volleyball_team').update({ position: zone.id }).eq('id', el.dataset.dbId);
                 }
             };
         });
 
-        // موبایل
+        // موبایل و درگ
         function setupDragAndDrop(el, playerName, dbId) {
             el.draggable = true;
+            
             el.ondragstart = (e) => {
+                activeDragId = el.id; // قفل کردن آپدیت برای این مهره
                 e.dataTransfer.setData('text/plain', el.id);
+            };
+            el.ondragend = () => {
+                activeDragId = null;
             };
 
             let clone = null;
@@ -365,12 +381,14 @@
                 if (tapLength < 400 && tapLength > 0) {
                     e.preventDefault();
                     if(confirm('حذف "' + playerName + '" از سیستم؟')) {
+                        el.style.opacity = '0.5';
                         _supabase.from('volleyball_team').delete().eq('id', dbId).then(() => fetchPlayers());
                     }
                     return;
                 }
                 lastTap = currentTime;
 
+                activeDragId = el.id; // قفل کردن هنگام لمس
                 const touch = e.touches[0];
                 clone = el.cloneNode(true);
                 clone.style.position = 'fixed';
@@ -405,6 +423,7 @@
                     updateGameState();
                     await _supabase.from('volleyball_team').update({ position: dropZone.id }).eq('id', dbId);
                 }
+                activeDragId = null; // باز کردن قفل مهره
             });
 
             function moveClone(x, y) {
