@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>تخته تاکتیک والیبال</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;700&display=swap" rel="stylesheet">
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Vazirmatn', Tahoma, Arial, sans-serif;
+            user-select: none; 
+        }
+
+        body {
+            background-color: #1a1a2e;
+            color: #fff;
+            height: 100vh;
+            display: flex;
+            flex-direction: row;
+            overflow: hidden;
+        }
+
+        /* --- پنل لیست بازیکنان --- */
+        .sidebar {
+            width: 300px;
+            background-color: #16213e;
+            border-left: 2px solid #0f3460;
+            display: flex;
+            flex-direction: column;
+            padding: 15px;
+            z-index: 100;
+        }
+
+        .header { text-align: center; margin-bottom: 15px; border-bottom: 1px solid #0f3460; padding-bottom: 10px; font-weight: bold;}
+        
+        .stats {
+            display: flex; justify-content: space-between;
+            background: #0f3460; padding: 10px; border-radius: 8px; margin-bottom: 15px; font-size: 13px;
+        }
+        .stats b { font-size: 15px; }
+
+        /* فرم ورودی استاندارد شده برای جلوگیری از باگ کیبورد */
+        .input-form { display: flex; gap: 5px; margin-bottom: 15px; }
+        .input-form input {
+            flex: 1; padding: 10px; border-radius: 8px; border: none; outline: none; background: #e94560; color: white; font-family: inherit; font-weight: bold;
+            font-size: 16px; /* جلوگیری از زوم خودکار کیبورد در آیفون */
+        }
+        .input-form input::placeholder { color: #ffd1d9; font-weight: normal; }
+        .input-form button {
+            padding: 10px 15px; background: #0f3460; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-family: inherit; font-size: 15px;
+        }
+
+        .bench-area {
+            flex: 1;
+            background-color: #0d162a;
+            border: 2px dashed #0f3460;
+            border-radius: 8px;
+            padding: 15px 10px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-content: flex-start;
+            overflow-y: auto; 
+        }
+
+        .bench-area::-webkit-scrollbar { width: 6px; }
+        .bench-area::-webkit-scrollbar-thumb { background: #e94560; border-radius: 4px; }
+        .bench-area::-webkit-scrollbar-track { background: #0f3460; border-radius: 4px; }
+
+        /* --- محوطه زمین بازی --- */
+        .court-wrapper {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 10px;
+            background-color: #1a1a2e;
+        }
+
+        .court {
+            width: 100%;
+            max-width: 380px;
+            height: 95%;
+            background-color: #e69138;
+            border: 5px solid white;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        .half-court { flex: 1; display: flex; flex-direction: column; position: relative; }
+        .net { height: 6px; background-color: white; z-index: 10; box-shadow: 0 5px 10px rgba(0,0,0,0.4); }
+        .row { display: flex; flex: 1; }
+        .attack-line { border-top: 3px solid white; }
+
+        .position {
+            flex: 1;
+            border: 1px solid rgba(255,255,255,0.2);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+        .pos-number {
+            position: absolute;
+            font-size: 28px;
+            font-weight: bold;
+            color: rgba(255,255,255,0.3);
+            pointer-events: none;
+        }
+
+        /* --- طراحی مهره بازیکنان (پیراهن) --- */
+        .player {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            cursor: grab;
+            z-index: 20;
+            position: relative;
+            touch-action: none; 
+            width: 65px;
+        }
+        .player:active { cursor: grabbing; }
+
+        .player-shirt {
+            width: 45px;
+            height: 45px;
+            transition: color 0.3s;
+            filter: drop-shadow(0 3px 3px rgba(0,0,0,0.5));
+            pointer-events: none; 
+        }
+
+        .color-neutral { color: #888; }       
+        .color-team-a { color: #007bff; }     
+        .color-team-b { color: #dc3545; }     
+
+        .player-name {
+            background: rgba(0,0,0,0.85);
+            color: white;
+            font-size: 11px;
+            padding: 3px 6px;
+            border-radius: 4px;
+            white-space: nowrap;
+            max-width: 65px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-top: -5px; 
+            pointer-events: none;
+            z-index: 2;
+        }
+
+        /* --- ریسپانسیو برای موبایل --- */
+        @media (max-width: 768px) {
+            body { flex-direction: column-reverse; } 
+            .sidebar { width: 100%; height: 35%; border-left: none; border-top: 3px solid #0f3460; padding: 10px;}
+            .court-wrapper { height: 65%; }
+            .header, .stats { display: none; } 
+            .input-form { margin-bottom: 10px; }
+            .bench-area { padding: 10px 5px; gap: 10px; }
+            .player-shirt { width: 40px; height: 40px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="court-wrapper">
+        <div class="court">
+            <div id="teamB" class="half-court">
+                <div class="row">
+                    <div id="pos_b1" class="position drop-zone"><span class="pos-number">1</span></div>
+                    <div id="pos_b6" class="position drop-zone"><span class="pos-number">6</span></div>
+                    <div id="pos_b5" class="position drop-zone"><span class="pos-number">5</span></div>
+                </div>
+                <div class="attack-line"></div>
+                <div class="row">
+                    <div id="pos_b2" class="position drop-zone"><span class="pos-number">2</span></div>
+                    <div id="pos_b3" class="position drop-zone"><span class="pos-number">3</span></div>
+                    <div id="pos_b4" class="position drop-zone"><span class="pos-number">4</span></div>
+                </div>
+            </div>
+
+            <div class="net"></div>
+
+            <div id="teamA" class="half-court">
+                <div class="row">
+                    <div id="pos_a4" class="position drop-zone"><span class="pos-number">4</span></div>
+                    <div id="pos_a3" class="position drop-zone"><span class="pos-number">3</span></div>
+                    <div id="pos_a2" class="position drop-zone"><span class="pos-number">2</span></div>
+                </div>
+                <div class="attack-line"></div>
+                <div class="row">
+                    <div id="pos_a5" class="position drop-zone"><span class="pos-number">5</span></div>
+                    <div id="pos_a6" class="position drop-zone"><span class="pos-number">6</span></div>
+                    <div id="pos_a1" class="position drop-zone"><span class="pos-number">1</span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="sidebar">
+        <div class="header">لیست بازیکنان</div>
+        
+        <div class="stats">
+            <span style="color: #007bff;">آبی: <b id="countA">0</b></span>
+            <span style="color: #fff;">کل: <b id="totalCount">0</b></span>
+            <span style="color: #dc3545;">قرمز: <b id="countB">0</b></span>
+        </div>
+
+        <form class="input-form" onsubmit="addPlayer(event)">
+            <input type="text" id="playerNameInput" placeholder="نام بازیکن + اینتر..." autocomplete="off">
+            <button type="submit">افزودن</button>
+        </form>
+        
+        <div id="bench" class="bench-area drop-zone"></div>
+    </div>
+
+    <script>
+        // === تنظیمات اتصال به دیتابیس سوپابیس شما ===
+        const SUPABASE_URL = 'https://upkelnsmharklolaqrco.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVwa2VsbnNtaGFya2xvbGFxcmNvIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MDgyNDkxMCwiZXhwIjoyMDk2NDAwOTEwfQ.3aKT49UYZXoSRL7wrxDoCtsw237BrI67SsXlGBMNOgY';
+        
+        const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        let localPlayers = [];
+
+        // اجرای خودکار به محض لود شدن سایت
+        window.onload = function() {
+            fetchPlayers();
+            listenToChanges();
+        };
+
+        // دریافت لیست زنده بازیکنان از دیتابیس آنلاین
+        async function fetchPlayers() {
+            const { data, error } = await _supabase.from('volleyball_team').select('*');
+            if (!error && data) {
+                localPlayers = data;
+                renderPlayers();
+            }
+        }
+
+        // رندر کردن مهره‌ها در موقعیت‌های ذخیره شده
+        function renderPlayers() {
+            document.querySelectorAll('.player').forEach(el => el.remove());
+
+            localPlayers.forEach(player => {
+                const playerDiv = document.createElement('div');
+                playerDiv.className = 'player';
+                playerDiv.id = 'player_' + player.id;
+                playerDiv.dataset.dbId = player.id;
+
+                // حذف بازیکن با دابل کلیک از دیتابیس آنلاین
+                playerDiv.ondblclick = async function(ev) {
+                    ev.stopPropagation();
+                    if(confirm('حذف "' + player.name + '" از سیستم؟')) {
+                        await _supabase.from('volleyball_team').delete().eq('id', player.id);
+                    }
+                };
+
+                const shirtDiv = document.createElement('div');
+                shirtDiv.className = 'player-shirt color-neutral';
+                shirtDiv.innerHTML = `
+                    <svg viewBox="0 0 24 24" fill="currentColor" width="100%" height="100%">
+                        <path d="M20 6L16 3H8L4 6L2 11L6 13V21H18V13L22 11L20 6Z"/>
+                    </svg>
+                `;
+
+                const nameSpan = document.createElement('div');
+                nameSpan.className = 'player-name';
+                nameSpan.innerText = player.name;
+
+                playerDiv.appendChild(shirtDiv);
+                playerDiv.appendChild(nameSpan);
+
+                let targetZone = document.getElementById(player.position);
+                if (!targetZone) targetZone = document.getElementById('bench');
+                
+                targetZone.appendChild(playerDiv);
+                setupDragAndDrop(playerDiv, player.name, player.id);
+            });
+
+            updateGameState();
+        }
+
+        function updateGameState() {
+            document.getElementById('totalCount').innerText = document.querySelectorAll('.player').length;
+            document.getElementById('countA').innerText = document.querySelectorAll('#teamA .player').length;
+            document.getElementById('countB').innerText = document.querySelectorAll('#teamB .player').length;
+
+            document.querySelectorAll('.player').forEach(player => {
+                const shirt = player.querySelector('.player-shirt');
+                if (player.closest('#teamA')) {
+                    shirt.className = 'player-shirt color-team-a';
+                } else if (player.closest('#teamB')) {
+                    shirt.className = 'player-shirt color-team-b';
+                } else {
+                    shirt.className = 'player-shirt color-neutral';
+                }
+            });
+        }
+
+        // افزودن بازیکن جدید به سوپابیس
+        async function addPlayer(e) {
+            if(e) e.preventDefault(); 
+
+            const input = document.getElementById('playerNameInput');
+            const name = input.value.trim();
+            if (name === '') return;
+
+            await _supabase.from('volleyball_team').insert([{ name: name, position: 'bench' }]);
+            
+            input.value = '';
+            input.focus();
+        }
+
+        // گوش دادن به تغییرات بقیه اعضا (همگام‌سازی لحظه‌ای / Realtime)
+        function listenToChanges() {
+            _supabase
+                .channel('realtime-volleyball')
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'volleyball_team' }, () => {
+                    fetchPlayers();
+                })
+                .subscribe();
+        }
+
+        // تنظیمات دراگ و دراپ کامپیوتر
+        document.querySelectorAll('.drop-zone').forEach(zone => {
+            zone.ondragover = (e) => e.preventDefault();
+            zone.ondrop = async (e) => {
+                e.preventDefault();
+                const data = e.dataTransfer.getData("text/plain");
+                const el = document.getElementById(data);
+                if(el) {
+                    zone.appendChild(el);
+                    updateGameState();
+                    await _supabase.from('volleyball_team').update({ position: zone.id }).eq('id', el.dataset.dbId);
+                }
+            };
+        });
+
+        // تنظیمات تاچ و دراگ روی موبایل
+        function setupDragAndDrop(el, playerName, dbId) {
+            el.draggable = true;
+            el.ondragstart = (e) => {
+                e.dataTransfer.setData('text/plain', el.id);
+            };
+
+            let clone = null;
+            let lastTap = 0; 
+
+            el.addEventListener('touchstart', (e) => {
+                const currentTime = new Date().getTime();
+                const tapLength = currentTime - lastTap;
+                
+                if (tapLength < 400 && tapLength > 0) {
+                    e.preventDefault();
+                    if(confirm('حذف "' + playerName + '" از سیستم؟')) {
+                        _supabase.from('volleyball_team').delete().eq('id', dbId);
+                    }
+                    return;
+                }
+                lastTap = currentTime;
+
+                const touch = e.touches[0];
+                clone = el.cloneNode(true);
+                clone.style.position = 'fixed';
+                clone.style.zIndex = '9999';
+                clone.style.opacity = '0.9';
+                clone.style.pointerEvents = 'none'; 
+                document.body.appendChild(clone);
+                
+                moveClone(touch.clientX, touch.clientY);
+                el.style.opacity = '0.3'; 
+            }, {passive: false});
+
+            el.addEventListener('touchmove', (e) => {
+                if(!clone) return;
+                e.preventDefault(); 
+                const touch = e.touches[0];
+                moveClone(touch.clientX, touch.clientY);
+            }, {passive: false});
+
+            el.addEventListener('touchend', async (e) => {
+                if(!clone) return;
+                const touch = e.changedTouches[0];
+                clone.remove();
+                clone = null;
+                el.style.opacity = '1';
+
+                const dropTarget = document.elementFromPoint(touch.clientX, touch.clientY);
+                const dropZone = dropTarget ? dropTarget.closest('.drop-zone') : null;
+
+                if(dropZone) {
+                    dropZone.appendChild(el);
+                    updateGameState();
+                    await _supabase.from('volleyball_team').update({ position: dropZone.id }).eq('id', dbId);
+                }
+            });
+
+            function moveClone(x, y) {
+                if(clone) {
+                    clone.style.left = (x - clone.offsetWidth / 2) + 'px';
+                    clone.style.top = (y - clone.offsetHeight / 2) + 'px';
+                }
+            }
+        }
+    </script>
+</body>
+</html>
