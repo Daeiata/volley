@@ -15,33 +15,12 @@
     direction: rtl;
     user-select: none;
   }
-  
-  /* --- نوار هشدار ویرایش زنده --- */
-  .live-alert {
-    position: fixed;
-    top: 0; left: 0; width: 100%;
-    background: #f59e0b; /* رنگ زرد/نارنجی هشدار */
-    color: #000;
-    text-align: center;
-    padding: 10px;
-    font-size: 13px;
-    font-weight: 900;
-    z-index: 10000;
-    transform: translateY(-100%);
-    transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    box-shadow: 0 4px 15px rgba(0,0,0,0.4);
-  }
-  .live-alert.show {
-    transform: translateY(0);
-  }
-
   header {
     display: flex;
     align-items: center;
     justify-content: space-between;
     padding: 16px;
     border-bottom: 1px solid rgba(255,255,255,0.06);
-    margin-top: 5px; /* کمی فاصله برای نوار هشدار */
   }
   .logo-wrap { display: flex; align-items: center; gap: 12px; }
   .logo {
@@ -220,8 +199,6 @@
 </head>
 <body>
 
-<div id="live-alert" class="live-alert">👀 یک نفر دیگر در حال تغییر ترکیب است...</div>
-
 <header>
   <div class="logo-wrap">
     <div class="logo">🏐</div>
@@ -318,3 +295,334 @@
         <option>مسدودکن</option>
         <option>سرویس‌زن</option>
       </select>
+      <button class="btn-primary btn-full" onclick="addPlayer()">+ افزودن</button>
+    </div>
+    <div id="list-all"></div>
+  </div>
+
+  <div class="panel" id="panel-stats">
+    <div class="stat-card"><div class="stat-label">کل بازیکنان</div><div class="stat-val" id="s-total">۰</div></div>
+    <div class="stat-card"><div class="stat-label">حاضرین امروز</div><div class="stat-val" style="color:#4ade80" id="s-present">۰</div></div>
+    <div class="stat-card"><div class="stat-label">تیم الف</div><div class="stat-val" style="color:#e94560" id="s-a">۰ نفر</div></div>
+    <div class="stat-card"><div class="stat-label">تیم ب</div><div class="stat-val" style="color:#007bff" id="s-b">۰ نفر</div></div>
+    <div class="stat-card"><div class="stat-label">تعادل تیم‌ها</div><div class="stat-val" style="font-size:15px" id="s-balance">—</div></div>
+  </div>
+</div>
+
+<div class="overlay" id="overlay" onclick="closeAllDropdowns()"></div>
+
+<script>
+// ── JSONBIN API CONFIG ─────────────────────────────────
+const BIN_ID = '6a25982dda38895dfe9569f8'; 
+const API_KEY = '$2a$10$.bXtjVvetitLx4DUvxkqWu3zvWmYEvL13hkjtqR5Qwg1eqLyaIt7.'; 
+
+// ── State ──────────────────────────────────────────────
+let state = { players: [], teamA: [], teamB: [], attendance: {} };
+// تغییر رنگ تیم ب به آبی لاجوردی پررنگ
+const TEAM_COLORS = { A: '#e94560', B: '#007bff', null: '#888' };
+let activeDragId = null;
+
+function fa(n) { return String(n).replace(/\d/g, d => '۰۱۲۳۴۵۶۷۸۹'[d]); }
+function uid() { return Math.random().toString(36).substr(2,9); }
+
+// ── Cloud Persist (JSONBin) ────────────────────────────
+async function save() {
+  if (!activeDragId) render(); 
+  try {
+    await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Master-Key': API_KEY
+      },
+      body: JSON.stringify(state)
+    });
+  } catch(e) { console.error('Error saving data', e); }
+}
+
+async function load() {
+  if (activeDragId) return; 
+  try {
+    const res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
+      headers: { 'X-Master-Key': API_KEY }
+    });
+    const data = await res.json();
+    if (data && data.record && Array.isArray(data.record.players)) {
+      state = data.record;
+      state.players.forEach(p => {
+        if (!p.zone) p.zone = 'bench';
+      });
+      syncTeamsState();
+      render();
+    }
+  } catch(e) { console.error('Error loading data', e); }
+}
+
+setInterval(load, 5000);
+
+// ── Helpers ───────────────────────────────────────────
+function getFirstEmptyZone(teamPrefix) {
+    const used = state.players.map(p => p.zone);
+    for(let i=1; i<=6; i++) {
+        if(!used.includes(teamPrefix + i)) return teamPrefix + i;
+    }
+    return teamPrefix + '1'; 
+}
+
+function syncTeamsState() {
+    state.teamA = state.players.filter(p => p.zone && p.zone.startsWith('A') && state.attendance[p.id]).map(p => p.id);
+    state.teamB = state.players.filter(p => p.zone && p.zone.startsWith('B') && state.attendance[p.id]).map(p => p.id);
+}
+
+// ── Player Ops ────────────────────────────────────────
+function addPlayer() {
+  const name = document.getElementById('inp-name').value.trim();
+  if (!name) return;
+  const pos = document.getElementById('inp-pos').value;
+  const p = { id: uid(), name, position: pos, zone: 'bench' };
+  state.players.push(p);
+  state.attendance[p.id] = true;
+  document.getElementById('inp-name').value = '';
+  document.getElementById('inp-pos').value = '';
+  save(); 
+}
+
+function removePlayer(id) {
+  state.players = state.players.filter(p => p.id !== id);
+  syncTeamsState();
+  delete state.attendance[id];
+  save(); 
+}
+
+function toggleAttend(id) {
+  state.attendance[id] = !state.attendance[id];
+  const p = state.players.find(x => x.id === id);
+  if(!state.attendance[id] && p) p.zone = 'bench'; 
+  syncTeamsState();
+  save(); 
+}
+
+function movePlayer(id, toTeam) {
+  const p = state.players.find(x => x.id === id);
+  if(p) {
+      if(toTeam === 'A') p.zone = getFirstEmptyZone('A');
+      else if(toTeam === 'B') p.zone = getFirstEmptyZone('B');
+      else p.zone = 'bench';
+  }
+  syncTeamsState();
+  save(); 
+}
+
+function randomize() {
+  const present = state.players.filter(p => state.attendance[p.id]).map(p => p.id).sort(() => Math.random() - 0.5);
+  const half = Math.ceil(present.length / 2);
+  const aList = present.slice(0, half);
+  const bList = present.slice(half);
+
+  state.players.forEach(p => p.zone = 'bench');
+
+  aList.forEach((id, i) => { const p = state.players.find(x=>x.id===id); if(p) p.zone = 'A' + ((i%6)+1); });
+  bList.forEach((id, i) => { const p = state.players.find(x=>x.id===id); if(p) p.zone = 'B' + ((i%6)+1); });
+
+  syncTeamsState();
+  save(); 
+}
+
+function resetTeams() {
+  state.players.forEach(p => p.zone = 'bench');
+  syncTeamsState();
+  save(); 
+}
+
+// ── UI Helpers ─────────────────────────────────────────
+function avatarHTML(name, color) {
+  const initials = name.split(' ').map(w=>w[0]).join('').slice(0,2);
+  return `<div class="avatar" style="background:${color};box-shadow:0 2px 8px ${color}55">${initials}</div>`;
+}
+
+function cardHTML(p, teamKey) {
+  const color = TEAM_COLORS[teamKey] || '#888';
+  const attended = !!state.attendance[p.id];
+  const inA = state.teamA.includes(p.id);
+  const inB = state.teamB.includes(p.id);
+
+  let ddItems = '';
+  if (!inA) ddItems += `<button class="dd-btn" onclick="movePlayer('${p.id}','A');closeAllDropdowns()">انتقال به تیم الف</button>`;
+  if (!inB) ddItems += `<button class="dd-btn" onclick="movePlayer('${p.id}','B');closeAllDropdowns()">انتقال به تیم ب</button>`;
+  if (inA || inB) ddItems += `<button class="dd-btn" onclick="movePlayer('${p.id}',null);closeAllDropdowns()">برگشت به نیمکت</button>`;
+  ddItems += `<button class="dd-btn danger" onclick="removePlayer('${p.id}');closeAllDropdowns()">حذف بازیکن</button>`;
+
+  return `
+    <div class="player-card">
+      ${avatarHTML(p.name, color)}
+      <div class="player-info">
+        <div class="player-name">${p.name}</div>
+        ${p.position ? `<div class="player-pos">${p.position}</div>` : ''}
+      </div>
+      <button class="attend-btn ${attended?'present':''}" onclick="toggleAttend('${p.id}')" title="${attended?'حاضر':'غایب'}">
+        ${attended ? '✓' : ''}
+      </button>
+      <button class="more-btn" onclick="toggleDropdown('dd-${p.id}',event)">⋯</button>
+      <div class="dropdown" id="dd-${p.id}">${ddItems}</div>
+    </div>`;
+}
+
+function toggleDropdown(id, e) {
+  e.stopPropagation();
+  const el = document.getElementById(id);
+  const wasOpen = el.classList.contains('open');
+  closeAllDropdowns();
+  if (!wasOpen) { el.classList.add('open'); document.getElementById('overlay').classList.add('show'); }
+}
+function closeAllDropdowns() {
+  document.querySelectorAll('.dropdown.open').forEach(d => d.classList.remove('open'));
+  document.getElementById('overlay').classList.remove('show');
+}
+
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach((t,i) => { t.classList.toggle('active', ['court','teams','players','stats'][i] === name); });
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('panel-' + name).classList.add('active');
+  closeAllDropdowns();
+}
+
+// ── Drag and Drop Logic ───────────────────────────────
+function handleDrop(playerId, zoneId) {
+    const p = state.players.find(x => x.id === playerId);
+    if(p) {
+        p.zone = zoneId;
+        syncTeamsState();
+        save(); 
+    }
+}
+
+function setupCourt() {
+    document.querySelectorAll('.drop-zone').forEach(zone => {
+        zone.ondragover = (e) => e.preventDefault();
+        zone.ondrop = (e) => {
+            e.preventDefault();
+            const pId = e.dataTransfer.getData("text/plain");
+            handleDrop(pId, zone.dataset.zone);
+        };
+    });
+}
+
+function renderCourt() {
+    document.querySelectorAll('.tactic-player').forEach(el => el.remove());
+
+    state.players.forEach(p => {
+        if(!state.attendance[p.id]) return; 
+
+        let color = '#888';
+        if(p.zone.startsWith('A')) color = TEAM_COLORS['A'];
+        if(p.zone.startsWith('B')) color = TEAM_COLORS['B'];
+
+        const el = document.createElement('div');
+        el.className = 'tactic-player';
+        el.id = 'tplayer_' + p.id;
+        // بازگرداندن آیکون قبلی (پیراهن ساده)
+        el.innerHTML = `
+            <svg class="shirt-icon" viewBox="0 0 24 24" fill="${color}">
+                <path d="M20 6L16 3H8L4 6L2 11L6 13V21H18V13L22 11L20 6Z"/>
+            </svg>
+            <div class="t-name">${p.name}</div>
+        `;
+
+        let targetZone = document.querySelector(`.drop-zone[data-zone="${p.zone}"]`);
+        if(!targetZone) targetZone = document.getElementById('court-bench');
+        targetZone.appendChild(el);
+
+        el.draggable = true;
+        el.ondragstart = (e) => {
+            activeDragId = p.id;
+            e.dataTransfer.setData('text/plain', p.id);
+        };
+        el.ondragend = () => { activeDragId = null; };
+
+        let clone = null;
+        el.addEventListener('touchstart', (e) => {
+            activeDragId = p.id;
+            const touch = e.touches[0];
+            clone = el.cloneNode(true);
+            clone.style.position = 'fixed';
+            clone.style.zIndex = '9999';
+            clone.style.pointerEvents = 'none';
+            document.body.appendChild(clone);
+            moveClone(touch.clientX, touch.clientY);
+            el.style.opacity = '0.2';
+        }, {passive: false});
+
+        el.addEventListener('touchmove', (e) => {
+            if(!clone) return;
+            e.preventDefault();
+            moveClone(e.touches[0].clientX, e.touches[0].clientY);
+        }, {passive: false});
+
+        el.addEventListener('touchend', (e) => {
+            if(!clone) return;
+            clone.remove(); clone = null; el.style.opacity = '1';
+            const touch = e.changedTouches[0];
+            const dropTarget = document.elementFromPoint(touch.clientX, touch.clientY);
+            const dropZone = dropTarget ? dropTarget.closest('.drop-zone') : null;
+            if(dropZone) { handleDrop(p.id, dropZone.dataset.zone); }
+            activeDragId = null;
+        });
+
+        function moveClone(x, y) {
+            if(clone) {
+                clone.style.left = (x - clone.offsetWidth/2) + 'px';
+                clone.style.top = (y - clone.offsetHeight/2) + 'px';
+            }
+        }
+    });
+}
+
+// ── Render ────────────────────────────────────────────
+function render() {
+  if (activeDragId) return; 
+
+  const presentCount = state.players.filter(p => state.attendance[p.id]).length;
+  const unassigned = state.players.filter(p => !state.teamA.includes(p.id) && !state.teamB.includes(p.id) && state.attendance[p.id]);
+
+  document.getElementById('attend-badge').textContent = fa(presentCount) + ' حاضر از ' + fa(state.players.length);
+  document.getElementById('session-info').textContent = new Date().toLocaleDateString('fa-IR');
+
+  renderCourt();
+
+  const listA = document.getElementById('list-a');
+  if (state.teamA.length === 0) listA.innerHTML = '<div class="empty-msg">بازیکن اضافه کنید</div>';
+  else listA.innerHTML = state.teamA.map(id => cardHTML(state.players.find(pl => pl.id === id), 'A')).join('');
+  document.getElementById('count-a').textContent = fa(state.teamA.length) + ' نفر';
+
+  const listB = document.getElementById('list-b');
+  if (state.teamB.length === 0) listB.innerHTML = '<div class="empty-msg">بازیکن اضافه کنید</div>';
+  else listB.innerHTML = state.teamB.map(id => cardHTML(state.players.find(pl => pl.id === id), 'B')).join('');
+  document.getElementById('count-b').textContent = fa(state.teamB.length) + ' نفر';
+
+  const sec = document.getElementById('unassigned-section');
+  if (unassigned.length > 0) {
+    sec.style.display = 'block';
+    document.getElementById('unassigned-label').textContent = 'نیمکت‌نشین‌ها (' + fa(unassigned.length) + ')';
+    document.getElementById('list-unassigned').innerHTML = unassigned.map(p => cardHTML(p, null)).join('');
+  } else { sec.style.display = 'none'; }
+
+  const listAll = document.getElementById('list-all');
+  if (state.players.length === 0) listAll.innerHTML = '<div class="empty-msg" style="padding-top:40px;font-size:15px">هنوز بازیکنی ثبت نشده</div>';
+  else listAll.innerHTML = state.players.map(p => cardHTML(p, state.teamA.includes(p.id) ? 'A' : state.teamB.includes(p.id) ? 'B' : null)).join('');
+
+  document.getElementById('s-total').textContent = fa(state.players.length);
+  document.getElementById('s-present').textContent = fa(presentCount);
+  document.getElementById('s-a').textContent = fa(state.teamA.length) + ' نفر';
+  document.getElementById('s-b').textContent = fa(state.teamB.length) + ' نفر';
+  const bal = state.teamA.length === state.teamB.length
+    ? fa(state.teamA.length) + ' در برابر ' + fa(state.teamB.length) + ' ✓ متعادل'
+    : fa(state.teamA.length) + ' در برابر ' + fa(state.teamB.length) + ' ⚠ نامتعادل';
+  document.getElementById('s-balance').textContent = bal;
+}
+
+// ── Init ──────────────────────────────────────────────
+setupCourt();
+load(); 
+</script>
+</body>
+</html>
