@@ -7,83 +7,42 @@
 <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;600;700;900&display=swap" rel="stylesheet">
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'Vazirmatn', sans-serif; background: linear-gradient(160deg, #0d0d1a 0%, #12122a 50%, #0d1525 100%); min-height: 100vh; color: #fff; direction: rtl; user-select: none; }
-  
-  /* نوار هشدار زنده */
-  #live-alert {
-    position: fixed; top: 0; left: 0; width: 100%; background: #f59e0b; color: #000;
-    text-align: center; padding: 8px; font-size: 13px; font-weight: 900; z-index: 10000;
-    transform: translateY(-100%); transition: transform 0.3s;
-  }
+  body { font-family: 'Vazirmatn', sans-serif; background: #1a1a2e; color: #fff; min-height: 100vh; user-select: none; }
+  #live-alert { position: fixed; top: 0; width: 100%; background: #f59e0b; color: #000; text-align: center; padding: 10px; font-weight: bold; z-index: 10000; transform: translateY(-100%); transition: transform 0.3s; }
   #live-alert.show { transform: translateY(0); }
-
-  header { display: flex; align-items: center; justify-content: space-between; padding: 16px; border-bottom: 1px solid rgba(255,255,255,0.06); }
-  .logo-wrap { display: flex; align-items: center; gap: 12px; }
-  .logo { width: 44px; height: 44px; background: rgba(233,69,96,0.15); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 24px; border: 1px solid rgba(233,69,96,0.3); }
-  .title { font-weight: 900; font-size: 20px; }
-  .badge { background: rgba(78,205,196,0.15); color: #4ecdc4; border-radius: 20px; padding: 4px 12px; font-size: 13px; }
   
-  .tabs { display: flex; border-bottom: 1px solid rgba(255,255,255,0.06); }
-  .tab { flex: 1; padding: 12px 0; background: transparent; border: none; color: #888; font-family: 'Vazirmatn', sans-serif; font-size: 14px; font-weight: 600; cursor: pointer; border-bottom: 2px solid transparent; }
-  .tab.active { color: #fff; border-bottom-color: #e94560; }
-  .content { padding: 16px 16px 100px; }
-  .panel { display: none; }
-  .panel.active { display: block; }
-
-  /* استایل بازیکنان */
-  .player-card { background: rgba(255,255,255,0.05); border-radius: 10px; padding: 9px 11px; display: flex; align-items: center; gap: 9px; border: 1px solid rgba(255,255,255,0.07); margin-bottom: 7px; }
-  .avatar { width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: #fff; }
-  .attend-btn { width: 28px; height: 28px; border-radius: 8px; border: none; cursor: pointer; font-size: 12px; font-weight: bold; }
-  .btn-present { background: #4ade80; color: #000; }
-  .btn-absent { background: #444; color: #fff; }
-  
-  .add-form { background: rgba(255,255,255,0.04); border-radius: 16px; padding: 16px; margin-bottom: 20px; }
-  .inp { width: 100%; padding: 12px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; color: #fff; margin-bottom: 8px; }
-  .btn-primary { width: 100%; padding: 12px; background: #e94560; border: none; border-radius: 10px; color: white; font-weight: bold; cursor: pointer; }
+  /* استایل‌های زمین */
+  .court-board { width: 100%; max-width: 400px; height: 380px; margin: 20px auto; background: #e69138; border: 4px solid #fff; display: flex; flex-direction: column; box-shadow: 0 10px 20px rgba(0,0,0,0.4); }
+  .pos-zone { flex: 1; border: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: center; align-items: center; position: relative; }
+  .bench-zone { background: rgba(0,0,0,0.2); padding: 15px; min-height: 80px; display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+  .tactic-player { display: flex; flex-direction: column; align-items: center; cursor: grab; }
+  .shirt-icon { width: 38px; height: 38px; }
+  .t-name { font-size: 10px; background: rgba(0,0,0,0.7); padding: 2px; border-radius: 4px; }
 </style>
 </head>
 <body>
 
 <div id="live-alert">⚠️ یک نفر دیگر در حال تغییر ترکیب است...</div>
 
-<header>
-  <div class="logo-wrap">
-    <div class="logo">🏐</div>
-    <div class="title">والیبال هفتگی</div>
-  </div>
-  <div class="badge" id="attend-badge">۰ حاضر</div>
-</header>
-
-<div class="tabs">
-  <button class="tab active" onclick="switchTab('players')">بازیکنان</button>
-  <button class="tab" onclick="switchTab('stats')">آمار</button>
-</div>
-
-<div class="content">
-  <div class="panel active" id="panel-players">
-    <div class="add-form">
-      <input class="inp" id="inp-name" placeholder="نام بازیکن...">
-      <button class="btn-primary" onclick="addPlayer()">افزودن</button>
+<div class="court-board">
+    <div class="half-court" style="display:flex; flex-direction:column; flex:1">
+        <div style="display:flex; flex:1"><div class="pos-zone drop-zone" data-zone="B1">1</div><div class="pos-zone drop-zone" data-zone="B6">6</div><div class="pos-zone drop-zone" data-zone="B5">5</div></div>
+        <div style="display:flex; flex:1"><div class="pos-zone drop-zone" data-zone="B2">2</div><div class="pos-zone drop-zone" data-zone="B3">3</div><div class="pos-zone drop-zone" data-zone="B4">4</div></div>
     </div>
-    <div id="list-all"></div>
-  </div>
-
-  <div class="panel" id="panel-stats">
-    <div id="s-stats"></div>
-  </div>
+    <div style="height:6px; background:#fff"></div>
+    <div class="half-court" style="display:flex; flex-direction:column; flex:1">
+        <div style="display:flex; flex:1"><div class="pos-zone drop-zone" data-zone="A4">4</div><div class="pos-zone drop-zone" data-zone="A3">3</div><div class="pos-zone drop-zone" data-zone="A2">2</div></div>
+        <div style="display:flex; flex:1"><div class="pos-zone drop-zone" data-zone="A5">5</div><div class="pos-zone drop-zone" data-zone="A6">6</div><div class="pos-zone drop-zone" data-zone="A1">1</div></div>
+    </div>
 </div>
+
+<div class="bench-zone drop-zone" data-zone="bench" id="court-bench"></div>
 
 <script>
-// اطلاعات شما
 const BIN_ID = '6a25982dda38895dfe9569f8'; 
 const API_KEY = '$2a$10$.bXtjVvetitLx4DUvxkqWu3zvWmYEvL13hkjtqR5Qwg1eqLyaIt7.'; 
-
 let state = { players: [], attendance: {}, lastEdit: 0 };
-const mySessionId = uid();
-let localLastEditTime = 0;
-
-function uid() { return Math.random().toString(36).substr(2,9); }
-function fa(n) { return String(n).replace(/\d/g, d => '۰۱۲۳۴۵۶۷۸۹'[d]); }
+const TEAM_COLORS = { A: '#e94560', B: '#007bff', null: '#888' };
 
 async function save() {
     state.lastEdit = Date.now();
@@ -96,47 +55,41 @@ async function save() {
 }
 
 async function load() {
-    const res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
-        headers: { 'X-Master-Key': API_KEY }
-    });
+    const res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, { headers: { 'X-Master-Key': API_KEY } });
     const data = await res.json();
-    if (data.record.lastEdit > localLastEditTime && data.record.lastEdit !== state.lastEdit) {
+    if (data.record.lastEdit > state.lastEdit) {
         state = data.record;
-        localLastEditTime = state.lastEdit;
-        const alertEl = document.getElementById('live-alert');
-        alertEl.classList.add('show');
-        setTimeout(() => alertEl.classList.remove('show'), 3000);
+        document.getElementById('live-alert').classList.add('show');
+        setTimeout(() => document.getElementById('live-alert').classList.remove('show'), 3000);
         render();
     }
 }
 
-function addPlayer() {
-    const name = document.getElementById('inp-name').value;
-    if(!name) return;
-    state.players.push({id: uid(), name});
-    state.attendance[state.players[state.players.length-1].id] = true;
-    document.getElementById('inp-name').value = '';
-    save();
-}
-
-function toggleAttend(id) {
-    state.attendance[id] = !state.attendance[id];
-    save();
-}
-
 function render() {
-    const list = document.getElementById('list-all');
-    list.innerHTML = state.players.map(p => `
-        <div class="player-card">
-            <div class="avatar" style="background:#444">${p.name[0]}</div>
-            <div style="flex:1; margin-right:10px">${p.name}</div>
-            <button class="attend-btn ${state.attendance[p.id] ? 'btn-present' : 'btn-absent'}" onclick="toggleAttend('${p.id}')">
-                ${state.attendance[p.id] ? '✓' : '×'}
-            </button>
-        </div>
-    `).join('');
-    document.getElementById('attend-badge').textContent = fa(Object.values(state.attendance).filter(x=>x).length) + ' حاضر';
+    document.querySelectorAll('.tactic-player').forEach(el => el.remove());
+    state.players.forEach(p => {
+        let color = p.zone.startsWith('A') ? TEAM_COLORS.A : (p.zone.startsWith('B') ? TEAM_COLORS.B : TEAM_COLORS.null);
+        const el = document.createElement('div');
+        el.className = 'tactic-player';
+        el.innerHTML = `<svg class="shirt-icon" viewBox="0 0 24 24" fill="${color}"><path d="M20 6L16 3H8L4 6L2 11L6 13V21H18V13L22 11L20 6Z"/></svg><div class="t-name">${p.name}</div>`;
+        
+        let zone = document.querySelector(`[data-zone="${p.zone}"]`);
+        (zone || document.getElementById('court-bench')).appendChild(el);
+        
+        el.draggable = true;
+        el.ondragstart = (e) => e.dataTransfer.setData('text/plain', p.id);
+    });
 }
+
+document.querySelectorAll('.drop-zone').forEach(z => {
+    z.ondragover = (e) => e.preventDefault();
+    z.ondrop = (e) => {
+        const id = e.dataTransfer.getData('text/plain');
+        const p = state.players.find(x => x.id === id);
+        p.zone = z.dataset.zone;
+        save();
+    };
+});
 
 setInterval(load, 3000);
 load();
