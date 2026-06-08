@@ -7,622 +7,139 @@
 <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;600;700;900&display=swap" rel="stylesheet">
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    font-family: 'Vazirmatn', sans-serif;
-    background: linear-gradient(160deg, #0d0d1a 0%, #12122a 50%, #0d1525 100%);
-    min-height: 100vh;
-    color: #fff;
-    direction: rtl;
-    user-select: none;
+  body { font-family: 'Vazirmatn', sans-serif; background: linear-gradient(160deg, #0d0d1a 0%, #12122a 50%, #0d1525 100%); min-height: 100vh; color: #fff; direction: rtl; user-select: none; }
+  
+  /* نوار هشدار زنده */
+  #live-alert {
+    position: fixed; top: 0; left: 0; width: 100%; background: #f59e0b; color: #000;
+    text-align: center; padding: 8px; font-size: 13px; font-weight: 900; z-index: 10000;
+    transform: translateY(-100%); transition: transform 0.3s;
   }
-  header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 16px;
-    border-bottom: 1px solid rgba(255,255,255,0.06);
-  }
-  .logo-wrap { display: flex; align-items: center; gap: 12px; }
-  .logo {
-    width: 44px; height: 44px;
-    background: rgba(233,69,96,0.15);
-    border-radius: 12px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 24px;
-    border: 1px solid rgba(233,69,96,0.3);
-  }
-  .title { font-weight: 900; font-size: 20px; }
-  .subtitle { font-size: 12px; color: #888; margin-top: 2px; }
-  .badge {
-    background: rgba(78,205,196,0.15);
-    color: #4ecdc4;
-    border-radius: 20px;
-    padding: 4px 12px;
-    font-size: 13px;
-  }
-  .tabs {
-    display: flex;
-    border-bottom: 1px solid rgba(255,255,255,0.06);
-  }
-  .tab {
-    flex: 1; padding: 12px 0;
-    background: transparent; border: none;
-    color: #888; font-family: 'Vazirmatn', sans-serif;
-    font-size: 14px; font-weight: 600;
-    cursor: pointer;
-    border-bottom: 2px solid transparent;
-    transition: all 0.2s;
-  }
-  .tab.active { color: #fff; border-bottom-color: #e94560; }
+  #live-alert.show { transform: translateY(0); }
 
+  header { display: flex; align-items: center; justify-content: space-between; padding: 16px; border-bottom: 1px solid rgba(255,255,255,0.06); }
+  .logo-wrap { display: flex; align-items: center; gap: 12px; }
+  .logo { width: 44px; height: 44px; background: rgba(233,69,96,0.15); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 24px; border: 1px solid rgba(233,69,96,0.3); }
+  .title { font-weight: 900; font-size: 20px; }
+  .badge { background: rgba(78,205,196,0.15); color: #4ecdc4; border-radius: 20px; padding: 4px 12px; font-size: 13px; }
+  
+  .tabs { display: flex; border-bottom: 1px solid rgba(255,255,255,0.06); }
+  .tab { flex: 1; padding: 12px 0; background: transparent; border: none; color: #888; font-family: 'Vazirmatn', sans-serif; font-size: 14px; font-weight: 600; cursor: pointer; border-bottom: 2px solid transparent; }
+  .tab.active { color: #fff; border-bottom-color: #e94560; }
   .content { padding: 16px 16px 100px; }
   .panel { display: none; }
   .panel.active { display: block; }
 
-  .btn-row { display: flex; gap: 8px; margin-bottom: 16px; }
-  .btn-primary {
-    flex: 1; padding: 13px 16px;
-    background: linear-gradient(135deg, #e94560, #c41e3a);
-    border: none; border-radius: 12px;
-    color: #fff; font-family: 'Vazirmatn', sans-serif;
-    font-size: 14px; font-weight: 700;
-    cursor: pointer;
-    box-shadow: 0 4px 16px rgba(233,69,96,0.3);
-    transition: transform 0.1s;
-  }
-  .btn-primary:active { transform: scale(0.97); }
-  .btn-secondary {
-    padding: 13px 16px;
-    background: rgba(255,255,255,0.08);
-    border: 1px solid rgba(255,255,255,0.12);
-    border-radius: 12px; color: #ccc;
-    font-family: 'Vazirmatn', sans-serif;
-    font-size: 14px; cursor: pointer;
-    transition: transform 0.1s;
-  }
-  .btn-secondary:active { transform: scale(0.97); }
-
-  .teams-grid { display: flex; gap: 12px; margin-bottom: 20px; }
-  .team-col {
-    flex: 1; background: rgba(255,255,255,0.03); border-radius: 16px;
-    border: 1px solid rgba(255,255,255,0.08); padding: 14px; min-height: 160px;
-  }
-  .team-col.team-a { border-color: rgba(233,69,96,0.3); }
-  .team-col.team-b { border-color: rgba(0, 123, 255, 0.3); }
+  /* استایل بازیکنان */
+  .player-card { background: rgba(255,255,255,0.05); border-radius: 10px; padding: 9px 11px; display: flex; align-items: center; gap: 9px; border: 1px solid rgba(255,255,255,0.07); margin-bottom: 7px; }
+  .avatar { width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: #fff; }
+  .attend-btn { width: 28px; height: 28px; border-radius: 8px; border: none; cursor: pointer; font-size: 12px; font-weight: bold; }
+  .btn-present { background: #4ade80; color: #000; }
+  .btn-absent { background: #444; color: #fff; }
   
-  .team-header {
-    display: flex; align-items: center; gap: 8px; margin-bottom: 14px; padding-bottom: 10px; border-bottom: 2px solid rgba(255,255,255,0.08);
-  }
-  .team-a .team-header { border-bottom-color: rgba(233,69,96,0.4); }
-  .team-b .team-header { border-bottom-color: rgba(0, 123, 255, 0.4); }
-  
-  .team-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
-  .team-a .team-dot { background: #e94560; box-shadow: 0 0 8px #e94560; }
-  .team-b .team-dot { background: #007bff; box-shadow: 0 0 8px #007bff; }
-  
-  .team-name { font-weight: 700; font-size: 15px; }
-  .team-count { margin-right: auto; border-radius: 20px; padding: 2px 8px; font-size: 12px; }
-  .team-a .team-count { background: rgba(233,69,96,0.15); color: #e94560; }
-  .team-b .team-count { background: rgba(0, 123, 255, 0.15); color: #007bff; }
-
-  .player-card {
-    background: rgba(255,255,255,0.05); border-radius: 10px; padding: 9px 11px; display: flex; align-items: center; gap: 9px; border: 1px solid rgba(255,255,255,0.07); margin-bottom: 7px; position: relative;
-  }
-  .avatar {
-    width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: #fff; flex-shrink: 0;
-  }
-  .player-info { flex: 1; min-width: 0; }
-  .player-name { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .player-pos { font-size: 11px; color: #aaa; }
-  .attend-btn {
-    width: 22px; height: 22px; border-radius: 50%; border: 2px solid #555; background: transparent; cursor: pointer; flex-shrink: 0; transition: all 0.2s; display: flex; align-items: center; justify-content: center; font-size: 12px;
-  }
-  .attend-btn.present { border-color: #4ade80; background: #4ade80; }
-  .more-btn { background: rgba(255,255,255,0.08); border: none; border-radius: 7px; color: #ccc; cursor: pointer; padding: 3px 8px; font-size: 17px; line-height: 1; }
-  .dropdown {
-    display: none; position: absolute; left: 0; top: 100%; z-index: 200; background: #1e1e3a; border: 1px solid rgba(255,255,255,0.15); border-radius: 10px; overflow: hidden; box-shadow: 0 8px 24px rgba(0,0,0,0.5); min-width: 140px;
-  }
-  .dropdown.open { display: block; }
-  .dd-btn {
-    display: block; width: 100%; padding: 10px 14px; background: transparent; border: none; color: #e0e0e0; text-align: right; cursor: pointer; font-family: 'Vazirmatn', sans-serif; font-size: 13px; border-bottom: 1px solid rgba(255,255,255,0.05);
-  }
-  .dd-btn:last-child { border-bottom: none; }
-  .dd-btn:active { background: rgba(255,255,255,0.05); }
-  .dd-btn.danger { color: #f87171; }
-  .empty-msg { text-align: center; color: #555; font-size: 13px; padding-top: 20px; }
-
-  .section-label { color: #888; font-size: 13px; margin-bottom: 8px; }
-
-  .add-form {
-    background: rgba(255,255,255,0.04); border-radius: 16px; padding: 16px; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.08);
-  }
-  .form-title { color: #ccc; font-size: 14px; font-weight: 600; margin-bottom: 12px; }
-  .inp {
-    width: 100%; padding: 12px 14px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; color: #fff; font-family: 'Vazirmatn', sans-serif; font-size: 14px; outline: none; direction: rtl; margin-bottom: 8px;
-  }
-  .inp::placeholder { color: #555; }
-  select.inp { cursor: pointer; }
-  select.inp option { background: #1e1e3a; }
-  .btn-full { width: 100%; }
-
-  .stat-card {
-    background: rgba(255,255,255,0.04); border-radius: 12px; padding: 14px 16px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; border: 1px solid rgba(255,255,255,0.06);
-  }
-  .stat-label { color: #888; font-size: 14px; }
-  .stat-val { font-size: 22px; font-weight: 700; }
-  .overlay { display: none; position: fixed; inset: 0; z-index: 199; }
-  .overlay.show { display: block; }
-
-  /* =========================================
-     کدهای اختصاصی زمین بازی (Drag & Drop)
-     ========================================= */
-  .court-board {
-    width: 100%; max-width: 400px; height: 380px; margin: 0 auto 20px;
-    background: linear-gradient(180deg, #d27b2f, #e69138); 
-    border: 4px solid #fff; border-radius: 4px;
-    display: flex; flex-direction: column; position: relative;
-    box-shadow: 0 10px 20px rgba(0,0,0,0.4);
-  }
-  .half-court { flex: 1; display: flex; flex-direction: column; position: relative; }
-  .net { height: 6px; background-color: #fff; z-index: 10; box-shadow: 0 4px 8px rgba(0,0,0,0.5); }
-  .court-row { display: flex; flex: 1; }
-  .team-b-attack { border-bottom: 2px solid rgba(255,255,255,0.8); }
-  .team-a-attack { border-top: 2px solid rgba(255,255,255,0.8); }
-  .pos-zone {
-    flex: 1; border: 1px solid rgba(255,255,255,0.1); 
-    display: flex; justify-content: center; align-items: center; position: relative;
-  }
-  .pos-number {
-    position: absolute; font-size: 24px; font-weight: bold; color: rgba(255,255,255,0.2); pointer-events: none;
-  }
-  
-  .bench-zone {
-    background: rgba(255,255,255,0.03); border: 2px dashed rgba(255,255,255,0.15);
-    border-radius: 12px; padding: 15px 10px; min-height: 100px;
-    display: flex; flex-wrap: wrap; gap: 10px; justify-content: center;
-    position: relative; margin-bottom: 20px;
-  }
-  .bench-label { position: absolute; top: -10px; right: 15px; background: #12122a; padding: 0 8px; font-size: 12px; color: #888; }
-  
-  .tactic-player {
-    display: flex; flex-direction: column; align-items: center; cursor: grab; z-index: 20; position: relative; touch-action: none;
-  }
-  .tactic-player:active { cursor: grabbing; }
-  .shirt-icon {
-    width: 38px; height: 38px; transition: color 0.3s ease; filter: drop-shadow(0 3px 4px rgba(0,0,0,0.5)); pointer-events: none;
-  }
-  .t-name {
-    background: rgba(0,0,0,0.8); color: white; font-size: 10px; padding: 2px 5px; border-radius: 4px;
-    white-space: nowrap; max-width: 55px; overflow: hidden; text-overflow: ellipsis; margin-top: -4px; pointer-events: none;
-  }
+  .add-form { background: rgba(255,255,255,0.04); border-radius: 16px; padding: 16px; margin-bottom: 20px; }
+  .inp { width: 100%; padding: 12px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; color: #fff; margin-bottom: 8px; }
+  .btn-primary { width: 100%; padding: 12px; background: #e94560; border: none; border-radius: 10px; color: white; font-weight: bold; cursor: pointer; }
 </style>
 </head>
 <body>
 
+<div id="live-alert">⚠️ یک نفر دیگر در حال تغییر ترکیب است...</div>
+
 <header>
   <div class="logo-wrap">
     <div class="logo">🏐</div>
-    <div>
-      <div class="title">والیبال هفتگی</div>
-      <div class="subtitle" id="session-info">در حال بارگذاری...</div>
-    </div>
+    <div class="title">والیبال هفتگی</div>
   </div>
   <div class="badge" id="attend-badge">۰ حاضر</div>
 </header>
 
 <div class="tabs">
-  <button class="tab active" onclick="switchTab('court')">زمین بازی</button>
-  <button class="tab" onclick="switchTab('teams')">لیست‌ها</button>
-  <button class="tab" onclick="switchTab('players')">بازیکنان</button>
+  <button class="tab active" onclick="switchTab('players')">بازیکنان</button>
   <button class="tab" onclick="switchTab('stats')">آمار</button>
 </div>
 
 <div class="content">
-
-  <div class="panel active" id="panel-court">
-    <div class="btn-row">
-      <button class="btn-primary" onclick="randomize()">🎲 قرعه‌کشی خودکار</button>
-      <button class="btn-secondary" onclick="resetTeams()">↺ نیمکت‌نشین کردن همه</button>
-    </div>
-    
-    <div class="bench-zone drop-zone" data-zone="bench" id="court-bench">
-      <div class="bench-label">نیمکت ذخیره‌ها (بکشید تو زمین)</div>
-    </div>
-
-    <div class="court-board">
-      <div class="half-court team-b-attack">
-        <div class="court-row">
-          <div class="pos-zone drop-zone" data-zone="B1"><span class="pos-number">1</span></div>
-          <div class="pos-zone drop-zone" data-zone="B6"><span class="pos-number">6</span></div>
-          <div class="pos-zone drop-zone" data-zone="B5"><span class="pos-number">5</span></div>
-        </div>
-        <div class="court-row">
-          <div class="pos-zone drop-zone" data-zone="B2"><span class="pos-number">2</span></div>
-          <div class="pos-zone drop-zone" data-zone="B3"><span class="pos-number">3</span></div>
-          <div class="pos-zone drop-zone" data-zone="B4"><span class="pos-number">4</span></div>
-        </div>
-      </div>
-      <div class="net"></div>
-      <div class="half-court team-a-attack">
-        <div class="court-row">
-          <div class="pos-zone drop-zone" data-zone="A4"><span class="pos-number">4</span></div>
-          <div class="pos-zone drop-zone" data-zone="A3"><span class="pos-number">3</span></div>
-          <div class="pos-zone drop-zone" data-zone="A2"><span class="pos-number">2</span></div>
-        </div>
-        <div class="court-row">
-          <div class="pos-zone drop-zone" data-zone="A5"><span class="pos-number">5</span></div>
-          <div class="pos-zone drop-zone" data-zone="A6"><span class="pos-number">6</span></div>
-          <div class="pos-zone drop-zone" data-zone="A1"><span class="pos-number">1</span></div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="panel" id="panel-teams">
-    <div class="teams-grid">
-      <div class="team-col team-a">
-        <div class="team-header">
-          <div class="team-dot"></div>
-          <span class="team-name">تیم الف</span>
-          <span class="team-count" id="count-a">۰ نفر</span>
-        </div>
-        <div id="list-a"><div class="empty-msg">بازیکن اضافه کنید</div></div>
-      </div>
-      <div class="team-col team-b">
-        <div class="team-header">
-          <div class="team-dot"></div>
-          <span class="team-name">تیم ب</span>
-          <span class="team-count" id="count-b">۰ نفر</span>
-        </div>
-        <div id="list-b"><div class="empty-msg">بازیکن اضافه کنید</div></div>
-      </div>
-    </div>
-    <div id="unassigned-section" style="display:none">
-      <div class="section-label" id="unassigned-label"></div>
-      <div id="list-unassigned"></div>
-    </div>
-  </div>
-
-  <div class="panel" id="panel-players">
+  <div class="panel active" id="panel-players">
     <div class="add-form">
-      <div class="form-title">افزودن بازیکن جدید</div>
-      <input class="inp" id="inp-name" placeholder="نام بازیکن" onkeydown="if(event.key==='Enter')addPlayer()">
-      <select class="inp" id="inp-pos">
-        <option value="">پست (اختیاری)</option>
-        <option>لیبرو</option>
-        <option>پاسور</option>
-        <option>اسمشر</option>
-        <option>مسدودکن</option>
-        <option>سرویس‌زن</option>
-      </select>
-      <button class="btn-primary btn-full" onclick="addPlayer()">+ افزودن</button>
+      <input class="inp" id="inp-name" placeholder="نام بازیکن...">
+      <button class="btn-primary" onclick="addPlayer()">افزودن</button>
     </div>
     <div id="list-all"></div>
   </div>
 
   <div class="panel" id="panel-stats">
-    <div class="stat-card"><div class="stat-label">کل بازیکنان</div><div class="stat-val" id="s-total">۰</div></div>
-    <div class="stat-card"><div class="stat-label">حاضرین امروز</div><div class="stat-val" style="color:#4ade80" id="s-present">۰</div></div>
-    <div class="stat-card"><div class="stat-label">تیم الف</div><div class="stat-val" style="color:#e94560" id="s-a">۰ نفر</div></div>
-    <div class="stat-card"><div class="stat-label">تیم ب</div><div class="stat-val" style="color:#007bff" id="s-b">۰ نفر</div></div>
-    <div class="stat-card"><div class="stat-label">تعادل تیم‌ها</div><div class="stat-val" style="font-size:15px" id="s-balance">—</div></div>
+    <div id="s-stats"></div>
   </div>
 </div>
 
-<div class="overlay" id="overlay" onclick="closeAllDropdowns()"></div>
-
 <script>
-// ── JSONBIN API CONFIG ─────────────────────────────────
+// اطلاعات شما
 const BIN_ID = '6a25982dda38895dfe9569f8'; 
 const API_KEY = '$2a$10$.bXtjVvetitLx4DUvxkqWu3zvWmYEvL13hkjtqR5Qwg1eqLyaIt7.'; 
 
-// ── State ──────────────────────────────────────────────
-let state = { players: [], teamA: [], teamB: [], attendance: {} };
-// تغییر رنگ تیم ب به آبی لاجوردی پررنگ
-const TEAM_COLORS = { A: '#e94560', B: '#007bff', null: '#888' };
-let activeDragId = null;
+let state = { players: [], attendance: {}, lastEdit: 0 };
+const mySessionId = uid();
+let localLastEditTime = 0;
 
-function fa(n) { return String(n).replace(/\d/g, d => '۰۱۲۳۴۵۶۷۸۹'[d]); }
 function uid() { return Math.random().toString(36).substr(2,9); }
+function fa(n) { return String(n).replace(/\d/g, d => '۰۱۲۳۴۵۶۷۸۹'[d]); }
 
-// ── Cloud Persist (JSONBin) ────────────────────────────
 async function save() {
-  if (!activeDragId) render(); 
-  try {
+    state.lastEdit = Date.now();
     await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Master-Key': API_KEY
-      },
-      body: JSON.stringify(state)
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'X-Master-Key': API_KEY },
+        body: JSON.stringify(state)
     });
-  } catch(e) { console.error('Error saving data', e); }
+    render();
 }
 
 async function load() {
-  if (activeDragId) return; 
-  try {
     const res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
-      headers: { 'X-Master-Key': API_KEY }
+        headers: { 'X-Master-Key': API_KEY }
     });
     const data = await res.json();
-    if (data && data.record && Array.isArray(data.record.players)) {
-      state = data.record;
-      state.players.forEach(p => {
-        if (!p.zone) p.zone = 'bench';
-      });
-      syncTeamsState();
-      render();
+    if (data.record.lastEdit > localLastEditTime && data.record.lastEdit !== state.lastEdit) {
+        state = data.record;
+        localLastEditTime = state.lastEdit;
+        const alertEl = document.getElementById('live-alert');
+        alertEl.classList.add('show');
+        setTimeout(() => alertEl.classList.remove('show'), 3000);
+        render();
     }
-  } catch(e) { console.error('Error loading data', e); }
 }
 
-setInterval(load, 5000);
-
-// ── Helpers ───────────────────────────────────────────
-function getFirstEmptyZone(teamPrefix) {
-    const used = state.players.map(p => p.zone);
-    for(let i=1; i<=6; i++) {
-        if(!used.includes(teamPrefix + i)) return teamPrefix + i;
-    }
-    return teamPrefix + '1'; 
-}
-
-function syncTeamsState() {
-    state.teamA = state.players.filter(p => p.zone && p.zone.startsWith('A') && state.attendance[p.id]).map(p => p.id);
-    state.teamB = state.players.filter(p => p.zone && p.zone.startsWith('B') && state.attendance[p.id]).map(p => p.id);
-}
-
-// ── Player Ops ────────────────────────────────────────
 function addPlayer() {
-  const name = document.getElementById('inp-name').value.trim();
-  if (!name) return;
-  const pos = document.getElementById('inp-pos').value;
-  const p = { id: uid(), name, position: pos, zone: 'bench' };
-  state.players.push(p);
-  state.attendance[p.id] = true;
-  document.getElementById('inp-name').value = '';
-  document.getElementById('inp-pos').value = '';
-  save(); 
-}
-
-function removePlayer(id) {
-  state.players = state.players.filter(p => p.id !== id);
-  syncTeamsState();
-  delete state.attendance[id];
-  save(); 
+    const name = document.getElementById('inp-name').value;
+    if(!name) return;
+    state.players.push({id: uid(), name});
+    state.attendance[state.players[state.players.length-1].id] = true;
+    document.getElementById('inp-name').value = '';
+    save();
 }
 
 function toggleAttend(id) {
-  state.attendance[id] = !state.attendance[id];
-  const p = state.players.find(x => x.id === id);
-  if(!state.attendance[id] && p) p.zone = 'bench'; 
-  syncTeamsState();
-  save(); 
+    state.attendance[id] = !state.attendance[id];
+    save();
 }
 
-function movePlayer(id, toTeam) {
-  const p = state.players.find(x => x.id === id);
-  if(p) {
-      if(toTeam === 'A') p.zone = getFirstEmptyZone('A');
-      else if(toTeam === 'B') p.zone = getFirstEmptyZone('B');
-      else p.zone = 'bench';
-  }
-  syncTeamsState();
-  save(); 
-}
-
-function randomize() {
-  const present = state.players.filter(p => state.attendance[p.id]).map(p => p.id).sort(() => Math.random() - 0.5);
-  const half = Math.ceil(present.length / 2);
-  const aList = present.slice(0, half);
-  const bList = present.slice(half);
-
-  state.players.forEach(p => p.zone = 'bench');
-
-  aList.forEach((id, i) => { const p = state.players.find(x=>x.id===id); if(p) p.zone = 'A' + ((i%6)+1); });
-  bList.forEach((id, i) => { const p = state.players.find(x=>x.id===id); if(p) p.zone = 'B' + ((i%6)+1); });
-
-  syncTeamsState();
-  save(); 
-}
-
-function resetTeams() {
-  state.players.forEach(p => p.zone = 'bench');
-  syncTeamsState();
-  save(); 
-}
-
-// ── UI Helpers ─────────────────────────────────────────
-function avatarHTML(name, color) {
-  const initials = name.split(' ').map(w=>w[0]).join('').slice(0,2);
-  return `<div class="avatar" style="background:${color};box-shadow:0 2px 8px ${color}55">${initials}</div>`;
-}
-
-function cardHTML(p, teamKey) {
-  const color = TEAM_COLORS[teamKey] || '#888';
-  const attended = !!state.attendance[p.id];
-  const inA = state.teamA.includes(p.id);
-  const inB = state.teamB.includes(p.id);
-
-  let ddItems = '';
-  if (!inA) ddItems += `<button class="dd-btn" onclick="movePlayer('${p.id}','A');closeAllDropdowns()">انتقال به تیم الف</button>`;
-  if (!inB) ddItems += `<button class="dd-btn" onclick="movePlayer('${p.id}','B');closeAllDropdowns()">انتقال به تیم ب</button>`;
-  if (inA || inB) ddItems += `<button class="dd-btn" onclick="movePlayer('${p.id}',null);closeAllDropdowns()">برگشت به نیمکت</button>`;
-  ddItems += `<button class="dd-btn danger" onclick="removePlayer('${p.id}');closeAllDropdowns()">حذف بازیکن</button>`;
-
-  return `
-    <div class="player-card">
-      ${avatarHTML(p.name, color)}
-      <div class="player-info">
-        <div class="player-name">${p.name}</div>
-        ${p.position ? `<div class="player-pos">${p.position}</div>` : ''}
-      </div>
-      <button class="attend-btn ${attended?'present':''}" onclick="toggleAttend('${p.id}')" title="${attended?'حاضر':'غایب'}">
-        ${attended ? '✓' : ''}
-      </button>
-      <button class="more-btn" onclick="toggleDropdown('dd-${p.id}',event)">⋯</button>
-      <div class="dropdown" id="dd-${p.id}">${ddItems}</div>
-    </div>`;
-}
-
-function toggleDropdown(id, e) {
-  e.stopPropagation();
-  const el = document.getElementById(id);
-  const wasOpen = el.classList.contains('open');
-  closeAllDropdowns();
-  if (!wasOpen) { el.classList.add('open'); document.getElementById('overlay').classList.add('show'); }
-}
-function closeAllDropdowns() {
-  document.querySelectorAll('.dropdown.open').forEach(d => d.classList.remove('open'));
-  document.getElementById('overlay').classList.remove('show');
-}
-
-function switchTab(name) {
-  document.querySelectorAll('.tab').forEach((t,i) => { t.classList.toggle('active', ['court','teams','players','stats'][i] === name); });
-  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-  document.getElementById('panel-' + name).classList.add('active');
-  closeAllDropdowns();
-}
-
-// ── Drag and Drop Logic ───────────────────────────────
-function handleDrop(playerId, zoneId) {
-    const p = state.players.find(x => x.id === playerId);
-    if(p) {
-        p.zone = zoneId;
-        syncTeamsState();
-        save(); 
-    }
-}
-
-function setupCourt() {
-    document.querySelectorAll('.drop-zone').forEach(zone => {
-        zone.ondragover = (e) => e.preventDefault();
-        zone.ondrop = (e) => {
-            e.preventDefault();
-            const pId = e.dataTransfer.getData("text/plain");
-            handleDrop(pId, zone.dataset.zone);
-        };
-    });
-}
-
-function renderCourt() {
-    document.querySelectorAll('.tactic-player').forEach(el => el.remove());
-
-    state.players.forEach(p => {
-        if(!state.attendance[p.id]) return; 
-
-        let color = '#888';
-        if(p.zone.startsWith('A')) color = TEAM_COLORS['A'];
-        if(p.zone.startsWith('B')) color = TEAM_COLORS['B'];
-
-        const el = document.createElement('div');
-        el.className = 'tactic-player';
-        el.id = 'tplayer_' + p.id;
-        // بازگرداندن آیکون قبلی (پیراهن ساده)
-        el.innerHTML = `
-            <svg class="shirt-icon" viewBox="0 0 24 24" fill="${color}">
-                <path d="M20 6L16 3H8L4 6L2 11L6 13V21H18V13L22 11L20 6Z"/>
-            </svg>
-            <div class="t-name">${p.name}</div>
-        `;
-
-        let targetZone = document.querySelector(`.drop-zone[data-zone="${p.zone}"]`);
-        if(!targetZone) targetZone = document.getElementById('court-bench');
-        targetZone.appendChild(el);
-
-        el.draggable = true;
-        el.ondragstart = (e) => {
-            activeDragId = p.id;
-            e.dataTransfer.setData('text/plain', p.id);
-        };
-        el.ondragend = () => { activeDragId = null; };
-
-        let clone = null;
-        el.addEventListener('touchstart', (e) => {
-            activeDragId = p.id;
-            const touch = e.touches[0];
-            clone = el.cloneNode(true);
-            clone.style.position = 'fixed';
-            clone.style.zIndex = '9999';
-            clone.style.pointerEvents = 'none';
-            document.body.appendChild(clone);
-            moveClone(touch.clientX, touch.clientY);
-            el.style.opacity = '0.2';
-        }, {passive: false});
-
-        el.addEventListener('touchmove', (e) => {
-            if(!clone) return;
-            e.preventDefault();
-            moveClone(e.touches[0].clientX, e.touches[0].clientY);
-        }, {passive: false});
-
-        el.addEventListener('touchend', (e) => {
-            if(!clone) return;
-            clone.remove(); clone = null; el.style.opacity = '1';
-            const touch = e.changedTouches[0];
-            const dropTarget = document.elementFromPoint(touch.clientX, touch.clientY);
-            const dropZone = dropTarget ? dropTarget.closest('.drop-zone') : null;
-            if(dropZone) { handleDrop(p.id, dropZone.dataset.zone); }
-            activeDragId = null;
-        });
-
-        function moveClone(x, y) {
-            if(clone) {
-                clone.style.left = (x - clone.offsetWidth/2) + 'px';
-                clone.style.top = (y - clone.offsetHeight/2) + 'px';
-            }
-        }
-    });
-}
-
-// ── Render ────────────────────────────────────────────
 function render() {
-  if (activeDragId) return; 
-
-  const presentCount = state.players.filter(p => state.attendance[p.id]).length;
-  const unassigned = state.players.filter(p => !state.teamA.includes(p.id) && !state.teamB.includes(p.id) && state.attendance[p.id]);
-
-  document.getElementById('attend-badge').textContent = fa(presentCount) + ' حاضر از ' + fa(state.players.length);
-  document.getElementById('session-info').textContent = new Date().toLocaleDateString('fa-IR');
-
-  renderCourt();
-
-  const listA = document.getElementById('list-a');
-  if (state.teamA.length === 0) listA.innerHTML = '<div class="empty-msg">بازیکن اضافه کنید</div>';
-  else listA.innerHTML = state.teamA.map(id => cardHTML(state.players.find(pl => pl.id === id), 'A')).join('');
-  document.getElementById('count-a').textContent = fa(state.teamA.length) + ' نفر';
-
-  const listB = document.getElementById('list-b');
-  if (state.teamB.length === 0) listB.innerHTML = '<div class="empty-msg">بازیکن اضافه کنید</div>';
-  else listB.innerHTML = state.teamB.map(id => cardHTML(state.players.find(pl => pl.id === id), 'B')).join('');
-  document.getElementById('count-b').textContent = fa(state.teamB.length) + ' نفر';
-
-  const sec = document.getElementById('unassigned-section');
-  if (unassigned.length > 0) {
-    sec.style.display = 'block';
-    document.getElementById('unassigned-label').textContent = 'نیمکت‌نشین‌ها (' + fa(unassigned.length) + ')';
-    document.getElementById('list-unassigned').innerHTML = unassigned.map(p => cardHTML(p, null)).join('');
-  } else { sec.style.display = 'none'; }
-
-  const listAll = document.getElementById('list-all');
-  if (state.players.length === 0) listAll.innerHTML = '<div class="empty-msg" style="padding-top:40px;font-size:15px">هنوز بازیکنی ثبت نشده</div>';
-  else listAll.innerHTML = state.players.map(p => cardHTML(p, state.teamA.includes(p.id) ? 'A' : state.teamB.includes(p.id) ? 'B' : null)).join('');
-
-  document.getElementById('s-total').textContent = fa(state.players.length);
-  document.getElementById('s-present').textContent = fa(presentCount);
-  document.getElementById('s-a').textContent = fa(state.teamA.length) + ' نفر';
-  document.getElementById('s-b').textContent = fa(state.teamB.length) + ' نفر';
-  const bal = state.teamA.length === state.teamB.length
-    ? fa(state.teamA.length) + ' در برابر ' + fa(state.teamB.length) + ' ✓ متعادل'
-    : fa(state.teamA.length) + ' در برابر ' + fa(state.teamB.length) + ' ⚠ نامتعادل';
-  document.getElementById('s-balance').textContent = bal;
+    const list = document.getElementById('list-all');
+    list.innerHTML = state.players.map(p => `
+        <div class="player-card">
+            <div class="avatar" style="background:#444">${p.name[0]}</div>
+            <div style="flex:1; margin-right:10px">${p.name}</div>
+            <button class="attend-btn ${state.attendance[p.id] ? 'btn-present' : 'btn-absent'}" onclick="toggleAttend('${p.id}')">
+                ${state.attendance[p.id] ? '✓' : '×'}
+            </button>
+        </div>
+    `).join('');
+    document.getElementById('attend-badge').textContent = fa(Object.values(state.attendance).filter(x=>x).length) + ' حاضر';
 }
 
-// ── Init ──────────────────────────────────────────────
-setupCourt();
-load(); 
+setInterval(load, 3000);
+load();
 </script>
 </body>
 </html>
