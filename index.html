@@ -7,19 +7,20 @@
 <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;600;700;900&display=swap" rel="stylesheet">
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'Vazirmatn', sans-serif; background: #1a1a2e; color: #fff; min-height: 100vh; user-select: none; }
-  #live-alert { position: fixed; top: 0; width: 100%; background: #f59e0b; color: #000; text-align: center; padding: 10px; font-weight: bold; z-index: 10000; transform: translateY(-100%); transition: transform 0.3s; }
-  #live-alert.show { transform: translateY(0); }
+  body { font-family: 'Vazirmatn', sans-serif; background: linear-gradient(160deg, #0d0d1a 0%, #12122a 50%, #0d1525 100%); min-height: 100vh; color: #fff; direction: rtl; user-select: none; }
   
-  .court-board { width: 100%; max-width: 400px; height: 380px; margin: 20px auto; background: #e69138; border: 4px solid #fff; display: flex; flex-direction: column; box-shadow: 0 10px 20px rgba(0,0,0,0.4); }
+  #live-alert {
+    position: fixed; top: 0; left: 0; width: 100%; background: #f59e0b; color: #000;
+    text-align: center; padding: 10px; font-size: 13px; font-weight: 900; z-index: 10000;
+    transform: translateY(-100%); transition: transform 0.4s;
+  }
+  #live-alert.show { transform: translateY(0); }
+
+  /* استایل‌های زمین بازی همون کد قبلی */
+  .court-board { width: 100%; max-width: 400px; height: 380px; margin: 20px auto; background: linear-gradient(180deg, #d27b2f, #e69138); border: 4px solid #fff; display: flex; flex-direction: column; box-shadow: 0 10px 20px rgba(0,0,0,0.4); }
   .pos-zone { flex: 1; border: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: center; align-items: center; position: relative; }
   .bench-zone { background: rgba(0,0,0,0.2); padding: 15px; min-height: 80px; display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
-  
-  /* انیمیشن نرم حرکت مهره‌ها */
-  .tactic-player { 
-    display: flex; flex-direction: column; align-items: center; cursor: grab; 
-    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  }
+  .tactic-player { display: flex; flex-direction: column; align-items: center; cursor: grab; z-index: 20; }
   .shirt-icon { width: 38px; height: 38px; pointer-events: none; }
   .t-name { font-size: 10px; background: rgba(0,0,0,0.7); padding: 2px; border-radius: 4px; pointer-events: none; }
 </style>
@@ -56,10 +57,11 @@ async function save() {
         headers: { 'Content-Type': 'application/json', 'X-Master-Key': API_KEY },
         body: JSON.stringify(state)
     });
+    render();
 }
 
 async function load() {
-    if (activeDragId) return; 
+    if (activeDragId) return;
     const res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, { headers: { 'X-Master-Key': API_KEY } });
     const data = await res.json();
     if (data.record.lastEdit > state.lastEdit) {
@@ -70,30 +72,22 @@ async function load() {
     }
 }
 
-function handleDrop(playerId, zoneId) {
-    const p = state.players.find(x => x.id === playerId);
-    if(p) {
-        p.zone = zoneId;
-        render(); // اول رندر سریع
-        save();   // بعد ذخیره در پس‌زمینه
-    }
-}
-
 function render() {
-    if (activeDragId) return;
     document.querySelectorAll('.tactic-player').forEach(el => el.remove());
     state.players.forEach(p => {
         let color = p.zone.startsWith('A') ? TEAM_COLORS.A : (p.zone.startsWith('B') ? TEAM_COLORS.B : TEAM_COLORS.null);
         const el = document.createElement('div');
         el.className = 'tactic-player';
+        el.id = 'tplayer_' + p.id;
         el.innerHTML = `<svg class="shirt-icon" viewBox="0 0 24 24" fill="${color}"><path d="M20 6L16 3H8L4 6L2 11L6 13V21H18V13L22 11L20 6Z"/></svg><div class="t-name">${p.name}</div>`;
         
         let zone = document.querySelector(`[data-zone="${p.zone}"]`);
         (zone || document.getElementById('court-bench')).appendChild(el);
         
+        // همون منطق درگ و دراپ که گفتی کار می‌کرد
         el.draggable = true;
         el.ondragstart = (e) => { activeDragId = p.id; e.dataTransfer.setData('text/plain', p.id); };
-        el.ondragend = () => { activeDragId = null; render(); };
+        el.ondragend = () => { activeDragId = null; };
     });
 }
 
@@ -101,11 +95,13 @@ document.querySelectorAll('.drop-zone').forEach(z => {
     z.ondragover = (e) => e.preventDefault();
     z.ondrop = (e) => {
         const id = e.dataTransfer.getData('text/plain');
-        handleDrop(id, z.dataset.zone);
+        const p = state.players.find(x => x.id === id);
+        p.zone = z.dataset.zone;
+        save();
     };
 });
 
-setInterval(load, 2000);
+setInterval(load, 3000);
 load();
 </script>
 </body>
